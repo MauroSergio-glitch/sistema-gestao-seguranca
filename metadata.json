@@ -1,0 +1,8 @@
+{
+  "name": "Remix Ocorrências de Segurança SST",
+  "description": "Aplicativo para registro e envio de ocorrências e relatos de segurança do trabalho.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

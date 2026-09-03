@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Ocorrências SST - Segurança do Trabalho</title>
+
+  <!-- PWA Meta Tags para Android, Chrome e Desktop -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#006C4C">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- PWA Meta Tags Exclusivas para iOS (iPhone / iPad) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SST Ocorrências">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Cabeçalho Principal -->
+  <header class="app-header">
+    <div class="header-title-group">
+      <span class="header-icon">🛡️</span>
+      <div>
+        <h1 class="app-title">Ocorrências SST</h1>
+        <p class="app-subtitle">Segurança e Saúde no Trabalho (PWA)</p>
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-secondary" onclick="printReport()" style="padding: 6px 12px; font-size: 0.85rem; min-height: 38px;">
+        🖨️ Imprimir
+      </button>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="main-content">
+
+    <!-- Banner de Instalação no Android / Chrome / Desktop -->
+    <div id="pwaInstallBanner" class="install-banner" style="display: none;">
+      <div>
+        <strong>📱 Instalar Aplicativo SST</strong>
+        <p style="font-size: 0.85rem; color: #2E7D32;">Instale o app diretamente no seu celular ou PC sem passar por lojas de aplicativos.</p>
+      </div>
+      <button id="pwaInstallBtn" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">Instalar</button>
+    </div>
+
+    <!-- Banner de Instrução para iPhone / iOS Safari -->
+    <div id="iosInstallBanner" class="install-banner" style="display: none; background: #E0F2FE; border-color: #BAE6FD;">
+      <div>
+        <strong>🍏 Adicionar ao seu iPhone (iOS):</strong>
+        <p style="font-size: 0.85rem; color: #0369A1;">
+          Toque no ícone de <strong>Compartilhar</strong> (ícone com quadrado e seta ⬆️) no Safari e escolha <strong>"Adicionar à Tela de Início"</strong>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Painel 1: Nova Ocorrência -->
+    <section id="panelNew" class="view-panel active">
+      <div class="card">
+        <h2 class="card-title">📝 Registrar Ocorrência SST</h2>
+        
+        <form id="occurrenceForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inputDate">Data do Fato *</label>
+              <input type="date" id="inputDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputTime">Horário *</label>
+              <input type="time" id="inputTime" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inputType">Tipo de Ocorrência *</label>
+              <select id="inputType" class="form-control" required>
+                <option value="Quase Acidente">⚠️ Quase Acidente (Near Miss)</option>
+                <option value="Condição Insegura">🔍 Condição Insegura</option>
+                <option value="Comportamento / Ato Inseguro">👤 Comportamento Inseguro</option>
+                <option value="Acidente Sem Afastamento">🩹 Acidente Sem Afastamento</option>
+                <option value="Acidente Com Afastamento">🚑 Acidente Com Afastamento</option>
+                <option value="Incidente Ambiental">🌱 Incidente Ambiental</option>
+                <option value="Desvio de EPI">🦺 Desvio / Não uso de EPI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputGravity">Classificação de Gravidade *</label>
+              <select id="inputGravity" class="form-control" required>
+                <option value="Baixa">🟢 Baixa (Atenção)</option>
+                <option value="Média" selected>🟡 Média (Urgência Moderada)</option>
+                <option value="Alta">🟠 Alta (Risco Elevado)</option>
+                <option value="Crítica">🔴 Crítica (Risco Iminente / Paralisação)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputLocation">Local / Frente de Trabalho / Setor *</label>
+            <input type="text" id="inputLocation" class="form-control" placeholder="Ex: Galpão A - Linha de Produção 02" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputEmployee">Colaborador Envolvido ou Relator</label>
+            <select id="inputEmployee" class="form-control">
+              <option value="">Carregando colaboradores...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputDescription">Descrição Detalhada do Evento *</label>
+            <div class="input-with-button">
+              <textarea id="inputDescription" class="form-control" placeholder="Descreva exatamente o que ocorreu, ferramentas envolvidas e condições do ambiente..." required></textarea>
+            </div>
+            <div style="margin-top: 8px;">
+              <button type="button" id="micBtn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 14px; min-height: 40px;">
+                🎤 Gravar Voz
+              </button>
+              <span style="font-size: 0.75rem; color: #64748B; margin-left: 8px;">(Fale no microfone do iPhone ou Android)</span>
+            </div>
+          </div>
+
+          <!-- Captura de Foto Nativa via Câmera do Smartphone -->
+          <div class="form-group">
+            <label class="form-label">Registro Fotográfico da Evidência</label>
+            <div class="photo-picker-box" onclick="document.getElementById('photoInput').click()">
+              <p style="font-size: 1.5rem; margin-bottom: 4px;">📸</p>
+              <strong>Tirar foto com a câmera ou anexar da galeria</strong>
+              <p style="font-size: 0.8rem; color: #64748B;">Funciona na câmera do iPhone e do Android</p>
+              <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+            </div>
+            <img id="photoPreview" class="photo-preview" alt="Prévia da foto tirada">
+            <button type="button" id="clearPhotoBtn" class="btn btn-danger" style="display: none; margin-top: 8px; padding: 4px 12px; font-size: 0.8rem; min-height: 36px;">
+              Remover Foto
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputImmediateAction">Medidas Imediatas Adotadas</label>
+            <input type="text" id="inputImmediateAction" class="form-control" placeholder="Ex: Isolamento da área, paralisação temporária da máquina">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputCorrectiveAction">Ações Corretivas Propostas</label>
+            <input type="text" id="inputCorrectiveAction" class="form-control" placeholder="Ex: Treinamento de reciclagem, troca de proteção física">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 12px;">
+            💾 Salvar Ocorrência
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Painel 2: Histórico de Ocorrências -->
+    <section id="panelHistory" class="view-panel">
+      <div class="card">
+        <h2 class="card-title">📋 Histórico de Ocorrências Registradas</h2>
+        <div id="occurrenceList">
+          <!-- Renderizado via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel 3: Dashboard & Métricas -->
+    <section id="panelDashboard" class="view-panel">
+      <div class="card">
+        <h2 class="card-title">📊 Indicadores de Gestão SST</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #E8F5E9; padding: 16px; border-radius: 12px; text-align: center;">
+            <div id="statTotal" style="font-size: 1.75rem; font-weight: 800; color: #006C4C;">0</div>
+            <div style="font-size: 0.8rem; color: #1E3A2F;">Total Registros</div>
+          </div>
+          <div style="background: #FEE2E2; padding: 16px; border-radius: 12px; text-align: center;">
+            <div id="statHigh" style="font-size: 1.75rem; font-weight: 800; color: #B91C1C;">0</div>
+            <div style="font-size: 0.8rem; color: #7F1D1D;">Alta / Crítica</div>
+          </div>
+          <div style="background: #FEF3C7; padding: 16px; border-radius: 12px; text-align: center;">
+            <div id="statPending" style="font-size: 1.75rem; font-weight: 800; color: #B45309;">0</div>
+            <div style="font-size: 0.8rem; color: #78350F;">Pendentes</div>
+          </div>
+        </div>
+
+        <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid #E2E8F0;">
+          <h3 style="font-size: 1rem; margin-bottom: 8px;">Exportação de Relatórios</h3>
+          <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 12px;">
+            Gere o relatório completo das ocorrências para envio por E-mail, impressão em PDF ou envio rápido no WhatsApp.
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="printReport()">📄 Gerar PDF / Imprimir</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel 4: Colaboradores -->
+    <section id="panelEmployees" class="view-panel">
+      <div class="card">
+        <h2 class="card-title">👥 Cadastro de Equipe e Responsáveis</h2>
+        
+        <form id="employeeForm" style="margin-bottom: 24px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="empName">Nome Completo *</label>
+              <input type="text" id="empName" class="form-control" placeholder="Ex: João da Silva" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="empRole">Cargo / Função *</label>
+              <input type="text" id="empRole" class="form-control" placeholder="Ex: Eletricista Industrial" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="empBadge">Matrícula ou Registro</label>
+            <input type="text" id="empBadge" class="form-control" placeholder="Ex: MAT-4892">
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width: 100%;">+ Adicionar Colaborador</button>
+        </form>
+
+        <h3 style="font-size: 1rem; margin-bottom: 12px;">Equipe Cadastrada</h3>
+        <div id="employeeList">
+          <!-- Renderizado via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Barra de Navegação Inferior (Mobile Friendly / App Style) -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-target="panelNew">
+      <span class="nav-icon">➕</span>
+      <span>Nova</span>
+    </button>
+    <button class="nav-item" data-target="panelHistory">
+      <span class="nav-icon">📋</span>
+      <span>Histórico</span>
+    </button>
+    <button class="nav-item" data-target="panelDashboard">
+      <span class="nav-icon">📊</span>
+      <span>Métricas</span>
+    </button>
+    <button class="nav-item" data-target="panelEmployees">
+      <span class="nav-icon">👥</span>
+      <span>Equipe</span>
+    </button>
+  </nav>
+
+  <!-- Script Principal -->
+  <script src="app.js"></script>
+</body>
+</html>
