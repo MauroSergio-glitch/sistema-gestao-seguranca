@@ -1,27 +1,47 @@
-name: Java Web Build and Deploy
+```
+
+name: Java CI com Gradle
 
 on:
+
   push:
-    branches: [ main ]
+
+    branches: [ "main" ]
+
+  pull_request:
+
+    branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+
+  build:
+
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
+    - uses: actions/checkout@v4
+
+    - name: Configurar o JDK
+
+      uses: actions/setup-java@v4
+
       with:
+
         java-version: '17'
+
         distribution: 'temurin'
-        cache: maven
 
-    - name: Build with Maven
-      run: mvn clean package
+    - name: Configurar o Gradle
 
-    - name: Deploy to GitHub Pages
-      uses: JamesIves/github-pages-deploy-action@v4
-      with:
-        folder: target/site
-        branch: gh-pages
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Dar permissão de execução ao Gradle Wrapper
+
+      run: chmod +x ./gradlew
+
+    - name: Compilar com o Gradle Wrapper
+
+      run: ./gradlew build --no-daemon
+
+```
