@@ -1,0 +1,43 @@
+name: Deploy main.yml
+
+on:
+  push:
+    branches:
+      - main # Executa o fluxo quando houver push na branch 'main'. Certifique-se de que sua branch principal se chama 'main'.
+
+permissions:
+  contents: write # Permissão necessária para fazer push na branch gh-pages
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java (Necessário para o Flutter build web)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable' # Use o canal estável do Flutter
+          flutter-version: '3.19.0' # Opcional: especifique a versão do Flutter, se necessário
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --base-href "/${{ github.event.repository.name }}/" --release
+        # O argumento --base-href é crucial para que o site funcione corretamente no subdiretório do GitHub Pages.
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/web # A pasta onde o Flutter gera os arquivos da web
+          branch: gh-pages # A branch onde o site será publicado
+          clean: true # Remove arquivos antigos da branch de deploy

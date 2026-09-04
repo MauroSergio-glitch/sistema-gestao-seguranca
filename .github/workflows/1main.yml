@@ -1,0 +1,47 @@
+```
+
+name: Java CI com Gradle
+
+on:
+
+  push:
+
+    branches: [ "main" ]
+
+  pull_request:
+
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v4
+
+    - name: Configurar o JDK
+
+      uses: actions/setup-java@v4
+
+      with:
+
+        java-version: '17'
+
+        distribution: 'temurin'
+
+    - name: Configurar o Gradle
+
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Dar permissão de execução ao Gradle Wrapper
+
+      run: chmod +x ./gradlew
+
+    - name: Compilar com o Gradle Wrapper
+
+      run: ./gradlew build --no-daemon
+
+```
