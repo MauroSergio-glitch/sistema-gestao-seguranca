@@ -86,7 +86,10 @@ data class SafetyFormState(
     val descricaoSolucao: String = "",
     val avaliacaoEficacia: String = "Pendente",
     val isRiskRecurrent: Boolean = false,
-    val recurrenceReason: String = ""
+    val recurrenceReason: String = "",
+    val tipoRiscoAmbiental: String = "Físico",
+    val statusAcao: String = "Pendente",
+    val nivelRisco: String = "Médio"
 )
 
 data class EmployeeRegistrationState(
@@ -807,6 +810,46 @@ class SafetyViewModel(
         _formState.value = _formState.value.copy(classificacao = newClassificacao)
     }
 
+    fun onTipoRiscoAmbientalChanged(newTipo: String) {
+        _formState.value = _formState.value.copy(tipoRiscoAmbiental = newTipo)
+    }
+
+    fun onStatusAcaoChanged(newStatus: String) {
+        _formState.value = _formState.value.copy(statusAcao = newStatus)
+    }
+
+    fun onPrioridadeChanged(newPrioridade: String) {
+        _formState.value = _formState.value.copy(prioridade = newPrioridade)
+    }
+
+    fun onNivelRiscoSelected(newNivel: String) {
+        val prioridadeCalculada = when (newNivel) {
+            "Baixo" -> "Baixa"
+            "Médio" -> "Média"
+            "Alto" -> "Alta (crítico)"
+            else -> "Média"
+        }
+        val riscoLabel = when (newNivel) {
+            "Baixo" -> "Baixo (Verde)"
+            "Médio" -> "Médio (Amarelo)"
+            "Alto" -> "Alto (Laranja)"
+            else -> "Médio (Amarelo)"
+        }
+        val (p, s) = when (newNivel) {
+            "Baixo" -> Pair(1, 2)
+            "Médio" -> Pair(2, 2)
+            "Alto" -> Pair(4, 4)
+            else -> Pair(2, 2)
+        }
+        _formState.value = _formState.value.copy(
+            nivelRisco = newNivel,
+            prioridade = prioridadeCalculada,
+            risco = riscoLabel,
+            probabilidade = p,
+            severidade = s
+        )
+    }
+
     fun onDestinatarioEmailChanged(newEmail: String) {
         _formState.value = _formState.value.copy(destinatarioEmail = newEmail)
     }
@@ -967,13 +1010,13 @@ class SafetyViewModel(
                 classificacao = current.classificacao,
                 sincronizadoGooglePlanilhas = true,
                 fotoUri = current.fotoUri,
-                statusAcao = if (current.acaoTomada.isNotBlank()) "Em Tratativa" else "Pendente",
+                statusAcao = current.statusAcao.ifBlank { "Pendente" },
                 responsavelAcao = current.responsavelAcao,
                 prazoAcao = current.prazoAcao.ifBlank { current.data.ifBlank { getCurrentDate() } },
                 perigo = current.perigo,
                 probabilidade = current.probabilidade,
                 severidade = current.severidade,
-                prioridade = riskAssessment.priority,
+                prioridade = current.prioridade.ifBlank { riskAssessment.priority },
                 acaoPreventiva = current.acaoPreventiva,
                 setorResponsavel = current.setorResponsavel.ifBlank { current.setor },
                 dataAbertura = current.data.ifBlank { getCurrentDate() },
@@ -984,7 +1027,8 @@ class SafetyViewModel(
                 descricaoSolucao = current.descricaoSolucao,
                 avaliacaoEficacia = current.avaliacaoEficacia,
                 categoriaCausa = current.categoriaCausa,
-                causaSecundaria = current.causaSecundaria
+                causaSecundaria = current.causaSecundaria,
+                tipoRiscoAmbiental = current.tipoRiscoAmbiental
             )
 
             val savedId = repository.saveOccurrence(entityToSave)

@@ -1041,6 +1041,42 @@ fun MainFormScreen(
                         maxLines = 2
                     )
 
+                    // Risco: Biológico, Químico e Físico
+                    SafetyDropdown(
+                        label = "Risco",
+                        selectedValue = formState.tipoRiscoAmbiental,
+                        options = listOf("Biológico", "Químico", "Físico"),
+                        onValueChange = { viewModel.onTipoRiscoAmbientalChanged(it) },
+                        leadingIcon = Icons.Default.Warning
+                    )
+
+                    // Nível de Risco (com definição automática de prioridade)
+                    SafetyDropdown(
+                        label = "Nível de Risco",
+                        selectedValue = formState.nivelRisco,
+                        options = listOf("Baixo", "Médio", "Alto"),
+                        onValueChange = { viewModel.onNivelRiscoSelected(it) },
+                        leadingIcon = Icons.Default.Assessment
+                    )
+
+                    // Prioridade (Automática)
+                    SafetyDropdown(
+                        label = "Prioridade (Automática)",
+                        selectedValue = formState.prioridade,
+                        options = listOf("Baixa", "Média", "Alta (crítico)"),
+                        onValueChange = { viewModel.onPrioridadeChanged(it) },
+                        leadingIcon = Icons.Default.NotificationImportant
+                    )
+
+                    // Status da Ocorrência
+                    SafetyDropdown(
+                        label = "Status",
+                        selectedValue = formState.statusAcao,
+                        options = listOf("Pendente", "Em Andamento", "Resolvida"),
+                        onValueChange = { viewModel.onStatusAcaoChanged(it) },
+                        leadingIcon = Icons.Default.CheckCircle
+                    )
+
                     // Ocorrência
                     SafetyDropdown(
                         label = "Tipo de Ocorrência",

@@ -41,5 +41,6 @@ data class SafetyOccurrence(
     val descricaoSolucao: String = "",
     val avaliacaoEficacia: String = "Pendente", // "Pendente", "Eficaz", "Ineficaz"
     val categoriaCausa: String = "Mão de Obra / Fator Humano", // 6M standard
-    val causaSecundaria: String = ""
+    val causaSecundaria: String = "",
+    val tipoRiscoAmbiental: String = "Físico"
 )

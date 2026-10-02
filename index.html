@@ -19,6 +19,9 @@
 
   <!-- Estilos -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- SheetJS para Exportação Profissional em Excel (.xlsx) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -31,9 +34,15 @@
         <p class="app-subtitle">Segurança e Saúde no Trabalho (PWA)</p>
       </div>
     </div>
-    <div>
-      <button class="btn btn-secondary" onclick="printReport()" style="padding: 6px 12px; font-size: 0.85rem; min-height: 38px;">
-        🖨️ Imprimir
+    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-secondary" onclick="exportToExcel()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Exportar para Planilha Excel (.xlsx)">
+        📊 <span class="hide-mobile">Excel</span>
+      </button>
+      <button class="btn btn-secondary" onclick="exportToPdf()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Exportar Relatório Técnico em PDF">
+        📄 <span class="hide-mobile">PDF</span>
+      </button>
+      <button class="btn btn-secondary" onclick="syncAllReports()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Sincronizar Dados e Relatórios">
+        ☁️ <span class="hide-mobile">Sync</span>
       </button>
     </div>
   </header>
@@ -91,19 +100,47 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="inputGravity">Classificação de Gravidade *</label>
-              <select id="inputGravity" class="form-control" required>
-                <option value="Baixa">🟢 Baixa (Atenção)</option>
-                <option value="Média" selected>🟡 Média (Urgência Moderada)</option>
-                <option value="Alta">🟠 Alta (Risco Elevado)</option>
-                <option value="Crítica">🔴 Crítica (Risco Iminente / Paralisação)</option>
+              <label class="form-label" for="inputRisk">Risco *</label>
+              <select id="inputRisk" class="form-control" required>
+                <option value="Biológico">Biológico</option>
+                <option value="Químico">Químico</option>
+                <option value="Físico" selected>Físico</option>
               </select>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="inputLocation">Local / Frente de Trabalho / Setor *</label>
-            <input type="text" id="inputLocation" class="form-control" placeholder="Ex: Galpão A - Linha de Produção 02" required>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inputRiskLevel">Nível de Risco *</label>
+              <select id="inputRiskLevel" class="form-control" required>
+                <option value="Baixo">🟢 Baixo</option>
+                <option value="Médio" selected>🟡 Médio</option>
+                <option value="Alto">🔴 Alto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputPriority">Prioridade * <small style="color: #64748B;">(Automática)</small></label>
+              <select id="inputPriority" class="form-control" required>
+                <option value="Baixa">🟢 Baixa</option>
+                <option value="Média" selected>🟡 Média</option>
+                <option value="Alta">🔴 Alta (crítico)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inputStatus">Status da Ocorrência *</label>
+              <select id="inputStatus" class="form-control" required>
+                <option value="Pendente" selected>⏳ Pendente</option>
+                <option value="Em Andamento">🔄 Em Andamento</option>
+                <option value="Resolvida">✅ Resolvida</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputLocation">Local / Frente de Trabalho / Setor *</label>
+              <input type="text" id="inputLocation" class="form-control" placeholder="Ex: Galpão A - Linha de Produção 02" required>
+            </div>
           </div>
 
           <div class="form-group">
@@ -161,7 +198,26 @@
     <!-- Painel 2: Histórico de Ocorrências -->
     <section id="panelHistory" class="view-panel">
       <div class="card">
-        <h2 class="card-title">📋 Histórico de Ocorrências Registradas</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px;">
+          <div>
+            <h2 class="card-title" style="margin-bottom: 2px;">📋 Histórico de Ocorrências</h2>
+            <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Relatos registrados com fotos, riscos e status de resolução</p>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="exportToExcel()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Exportar todas as ocorrências para planilha Excel">
+              📊 <span>Excel (.xlsx)</span>
+            </button>
+            <button class="btn btn-secondary" onclick="exportToCsv()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Exportar para planilha CSV compatível com Excel">
+              📑 <span>CSV</span>
+            </button>
+            <button class="btn btn-primary" onclick="exportToPdf()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Gerar relatório técnico completo em PDF">
+              📄 <span>Relatório PDF</span>
+            </button>
+            <button class="btn btn-secondary" onclick="syncAllReports()" style="padding: 6px 12px; font-size: 0.8rem; min-height: 38px; display: inline-flex; align-items: center; gap: 4px;" title="Sincronizar dados">
+              ☁️ <span>Sync</span>
+            </button>
+          </div>
+        </div>
         <div id="occurrenceList">
           <!-- Renderizado via JavaScript -->
         </div>
@@ -172,30 +228,103 @@
     <section id="panelDashboard" class="view-panel">
       <div class="card">
         <h2 class="card-title">📊 Indicadores de Gestão SST</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px;">
           <div style="background: #E8F5E9; padding: 16px; border-radius: 12px; text-align: center;">
             <div id="statTotal" style="font-size: 1.75rem; font-weight: 800; color: #006C4C;">0</div>
-            <div style="font-size: 0.8rem; color: #1E3A2F;">Total Registros</div>
-          </div>
-          <div style="background: #FEE2E2; padding: 16px; border-radius: 12px; text-align: center;">
-            <div id="statHigh" style="font-size: 1.75rem; font-weight: 800; color: #B91C1C;">0</div>
-            <div style="font-size: 0.8rem; color: #7F1D1D;">Alta / Crítica</div>
+            <div style="font-size: 0.8rem; color: #1E3A2F; font-weight: 600;">Total Registros</div>
           </div>
           <div style="background: #FEF3C7; padding: 16px; border-radius: 12px; text-align: center;">
             <div id="statPending" style="font-size: 1.75rem; font-weight: 800; color: #B45309;">0</div>
-            <div style="font-size: 0.8rem; color: #78350F;">Pendentes</div>
+            <div style="font-size: 0.8rem; color: #78350F; font-weight: 600;">Pendentes</div>
+          </div>
+          <div style="background: #DBEAFE; padding: 16px; border-radius: 12px; text-align: center;">
+            <div id="statInProgress" style="font-size: 1.75rem; font-weight: 800; color: #1E40AF;">0</div>
+            <div style="font-size: 0.8rem; color: #1E3A8A; font-weight: 600;">Em Andamento</div>
+          </div>
+          <div style="background: #D1FAE5; padding: 16px; border-radius: 12px; text-align: center;">
+            <div id="statResolved" style="font-size: 1.75rem; font-weight: 800; color: #065F46;">0</div>
+            <div style="font-size: 0.8rem; color: #064E3B; font-weight: 600;">Resolvidas</div>
           </div>
         </div>
 
-        <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid #E2E8F0;">
-          <h3 style="font-size: 1rem; margin-bottom: 8px;">Exportação de Relatórios</h3>
-          <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 12px;">
-            Gere o relatório completo das ocorrências para envio por E-mail, impressão em PDF ou envio rápido no WhatsApp.
-          </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-primary" onclick="printReport()">📄 Gerar PDF / Imprimir</button>
+        <!-- Central de Exportação Profissional -->
+        <div style="border-top: 1px solid #E2E8F0; padding-top: 18px;">
+          <h3 style="font-size: 1.1rem; color: #1E293B; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+            📑 Central de Relatórios e Sincronização Executiva (SST)
+          </h3>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+            
+            <!-- Card 1: Relatório em Planilha Excel -->
+            <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1.5px solid #CBD5E1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 1.5rem;">📊</span>
+                  <h4 style="margin: 0; font-size: 1rem; color: #0F5132;">Planilha Gerencial Excel (.xlsx / .csv)</h4>
+                </div>
+                <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px; line-height: 1.4;">
+                  Exporta todas as informações sincronizadas de cada relato: Protocolo, Data, Hora, Colaborador, Matrícula, Setor, Local, Risco Ambiental (Biológico/Químico/Físico), Grau de Risco, Prioridade, Status, Descrição e Medidas.
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="exportToExcel()" style="padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                  📊 Baixar Excel (.xlsx)
+                </button>
+                <button class="btn btn-secondary" onclick="exportToCsv()" style="padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                  📑 Baixar CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2: Relatório Técnico Oficial em PDF -->
+            <div style="background: #F0FDF4; padding: 16px; border-radius: 12px; border: 1.5px solid #86EFAC; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 1.5rem;">📄</span>
+                  <h4 style="margin: 0; font-size: 1rem; color: #166534;">Relatório Técnico Oficial em PDF (NR-01 / PGR)</h4>
+                </div>
+                <p style="font-size: 0.85rem; color: #14532D; margin-bottom: 12px; line-height: 1.4;">
+                  Laudo executivo formatado com cabeçalho institucional, indicadores de risco, tabela consolidada de eventos, detalhamento com fotos das ocorrências e campos para assinaturas técnicas do SESMT e CIPA.
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="exportToPdf()" style="padding: 8px 14px; font-size: 0.85rem; background: #166534; display: inline-flex; align-items: center; gap: 6px;">
+                  📄 Gerar Relatório PDF
+                </button>
+                <button class="btn btn-secondary" onclick="printReport()" style="padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                  🖨️ Imprimir Laudo
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 3: Sincronização e Backup Seguro -->
+            <div style="background: #EFF6FF; padding: 16px; border-radius: 12px; border: 1.5px solid #BFDBFE; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 1.5rem;">☁️</span>
+                  <h4 style="margin: 0; font-size: 1rem; color: #1E40AF;">Sincronização & Backup de Dados</h4>
+                </div>
+                <p style="font-size: 0.85rem; color: #1E3A8A; margin-bottom: 12px; line-height: 1.4;">
+                  Sincronize todos os relatos e colaboradores com o banco de dados local seguro do aparelho, exporte backup em JSON ou restaure seus dados em qualquer dispositivo (Web, iPhone ou Android).
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="syncAllReports()" style="padding: 8px 14px; font-size: 0.85rem; background: #1E40AF; display: inline-flex; align-items: center; gap: 6px;">
+                  ☁️ Sincronizar Agora
+                </button>
+                <button class="btn btn-secondary" onclick="exportBackupJson()" style="padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                  💾 Salvar Backup
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importBackupFile').click()" style="padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                  📥 Restaurar
+                </button>
+                <input type="file" id="importBackupFile" accept=".json" style="display: none;" onchange="handleBackupFile(this)">
+              </div>
+            </div>
+
           </div>
         </div>
+
       </div>
     </section>
 

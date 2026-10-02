@@ -36,7 +36,7 @@ object SpreadsheetReportManager {
         return File(getSpreadsheetDir(context), "Planilha_Ocorrencias_SST.csv")
     }
 
-    const val CSV_HEADER = "ID;Data;Hora;Matrícula/RE;Colaborador;Setor;Local;Grau de Risco;Tipo Ocorrência;Classificação;Causa Principal;Causa Secundária / Fator Contribuinte;Condição do Clima;Relato e Detalhes;Ação Imediata / Tomada;Status da Ocorrência;Ação Preventiva Definitiva;Responsável pela Resolução;Setor Responsável;Prazo / Data Limite de Tratativa;Foto Anexa\n"
+    const val CSV_HEADER = "ID;Data;Hora;Matrícula/RE;Colaborador;Setor;Local;Risco Ambiental;Grau de Risco;Prioridade;Tipo Ocorrência;Classificação;Causa Principal;Causa Secundária / Fator Contribuinte;Condição do Clima;Relato e Detalhes;Ação Imediata / Tomada;Status da Ocorrência;Ação Preventiva Definitiva;Responsável pela Resolução;Setor Responsável;Prazo / Data Limite de Tratativa;Foto Anexa\n"
 
     /**
      * Resolves the user-facing status of an occurrence (Pendente, Em Tratativa, Eficaz, Concluído, etc.)
@@ -47,7 +47,8 @@ object SpreadsheetReportManager {
         return when {
             status.equals("Eficaz", ignoreCase = true) || avaliacao.equals("Eficaz", ignoreCase = true) -> "Eficaz"
             status.equals("Concluído", ignoreCase = true) || status.equals("Concluido", ignoreCase = true) -> "Concluído"
-            status.equals("Em Tratativa", ignoreCase = true) -> "Em Tratativa"
+            status.equals("Resolvida", ignoreCase = true) || status.equals("Resolvido", ignoreCase = true) -> "Resolvida"
+            status.equals("Em Andamento", ignoreCase = true) || status.equals("Em Tratativa", ignoreCase = true) -> "Em Andamento"
             status.equals("Aguardando Validação", ignoreCase = true) || status.equals("Aguardando Validacao", ignoreCase = true) -> "Aguardando Validação"
             status.equals("Atrasado", ignoreCase = true) -> "Atrasado"
             status.equals("Cancelado", ignoreCase = true) -> "Cancelado"
@@ -81,7 +82,9 @@ object SpreadsheetReportManager {
             append("${sanitizeCsv(occurrence.nomeColaborador)};")
             append("${sanitizeCsv(occurrence.setor)};")
             append("${sanitizeCsv(occurrence.local)};")
+            append("${sanitizeCsv(occurrence.tipoRiscoAmbiental)};")
             append("${sanitizeCsv(occurrence.risco)};")
+            append("${sanitizeCsv(occurrence.prioridade)};")
             append("${sanitizeCsv(occurrence.ocorrencia)};")
             append("${sanitizeCsv(occurrence.classificacao)};")
             append("${sanitizeCsv(occurrence.causa)};")
