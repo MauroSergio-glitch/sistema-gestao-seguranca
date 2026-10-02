@@ -26,6 +26,13 @@ import java.util.Locale
 
 import com.example.data.remote.GoogleSheetsSyncService
 import com.example.data.remote.SyncResult
+import com.example.data.auth.FirebaseAuthManager
+import com.example.data.model.ChatMessage
+import com.example.data.model.MessageRole
+import com.example.data.model.UserProfile
+import com.example.data.remote.FirestoreSyncService
+import com.example.data.remote.GeminiChatService
+import android.app.Activity
 import com.example.util.CoverConfig
 import com.example.util.CoverImageManager
 import com.example.util.DailyReportManager
@@ -111,8 +118,185 @@ sealed class UiEvent {
 }
 
 class SafetyViewModel(
-    private val repository: SafetyRepository
+    private val repository: SafetyRepository,
+    context: Context? = null
 ) : ViewModel() {
+
+    private val geminiChatService = GeminiChatService()
+    val firestoreSyncService = FirestoreSyncService()
+    var firebaseAuthManager: FirebaseAuthManager? = context?.let { FirebaseAuthManager(it.applicationContext) }
+
+    // Gemini Chatbot State
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
+        listOf(
+            ChatMessage(
+                role = MessageRole.ASSISTANT,
+                text = "Olá! Sou o Assistente Especialista SST do Foco na Prevenção. Posso ajudá-lo com orientações sobre Normas Regulamentadoras (NR-01, NR-12, etc.), planos de ação CAPA (5W2H), análise de riscos e investigação de incidentes. Como posso apoiar a sua equipe hoje?"
+            )
+        )
+    )
+    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
+    val isChatGenerating = MutableStateFlow(false)
+    val showChatbotDialog = MutableStateFlow(false)
+
+    // Firebase Auth State
+    val currentUser = MutableStateFlow<UserProfile?>(null)
+    val isAuthLoading = MutableStateFlow(false)
+    val showAuthDialog = MutableStateFlow(false)
+
+    // Firestore Sync State
+    val isFirestoreSyncing = MutableStateFlow(false)
+    val lastFirestoreSyncTime = MutableStateFlow<String?>(null)
+
+    init {
+        firebaseAuthManager?.let { auth ->
+            currentUser.value = auth.getCurrentUser()
+            viewModelScope.launch {
+                auth.authStateFlow.collect { user ->
+                    currentUser.value = user
+                }
+            }
+        }
+    }
+
+    fun attachContextIfNeeded(context: Context) {
+        if (firebaseAuthManager == null) {
+            val auth = FirebaseAuthManager(context.applicationContext)
+            firebaseAuthManager = auth
+            currentUser.value = auth.getCurrentUser()
+            viewModelScope.launch {
+                auth.authStateFlow.collect { user ->
+                    currentUser.value = user
+                }
+            }
+        }
+    }
+
+    fun openChatbot() {
+        showChatbotDialog.value = true
+    }
+
+    fun closeChatbot() {
+        showChatbotDialog.value = false
+    }
+
+    fun openAuthDialog() {
+        showAuthDialog.value = true
+    }
+
+    fun closeAuthDialog() {
+        showAuthDialog.value = false
+    }
+
+    fun clearChatHistory() {
+        _chatMessages.value = listOf(
+            ChatMessage(
+                role = MessageRole.ASSISTANT,
+                text = "Histórico de conversa limpo. Estou pronto para ajudar em novas análises ou dúvidas de segurança do trabalho!"
+            )
+        )
+    }
+
+    fun sendChatMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank() || isChatGenerating.value) return
+
+        val userMsg = ChatMessage(role = MessageRole.USER, text = trimmed)
+        val updatedHistory = _chatMessages.value + userMsg
+        _chatMessages.value = updatedHistory
+        isChatGenerating.value = true
+
+        viewModelScope.launch {
+            val result = geminiChatService.sendMessage(
+                history = updatedHistory,
+                occurrencesContext = allOccurrences.value
+            )
+            isChatGenerating.value = false
+            result.onSuccess { reply ->
+                _chatMessages.value = _chatMessages.value + ChatMessage(
+                    role = MessageRole.ASSISTANT,
+                    text = reply
+                )
+            }.onFailure { err ->
+                val errorMsg = err.message ?: "Erro desconhecido ao chamar a IA."
+                _chatMessages.value = _chatMessages.value + ChatMessage(
+                    role = MessageRole.ASSISTANT,
+                    text = "Aviso do Assistente: Não foi possível obter resposta no momento ($errorMsg).\n\nVerifique sua conexão e certifique-se de configurar a chave GEMINI_API_KEY no painel de segredos do AI Studio.",
+                    isError = true
+                )
+            }
+        }
+    }
+
+    fun signInWithGoogle(activity: Activity) {
+        attachContextIfNeeded(activity)
+        val auth = firebaseAuthManager ?: return
+        isAuthLoading.value = true
+        viewModelScope.launch {
+            val result = auth.signInWithGoogle(activity)
+            isAuthLoading.value = false
+            result.onSuccess { user ->
+                currentUser.value = user
+                _uiEvent.emit(UiEvent.ShowSnackbar("✓ Bem-vindo(a), ${user.displayName}! Login realizado via Google Firebase."))
+                syncWithFirestore(activity)
+            }.onFailure { err ->
+                _uiEvent.emit(UiEvent.ShowSnackbar("Aviso de login: ${err.message}"))
+            }
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            firebaseAuthManager?.signOut()
+            currentUser.value = null
+            _uiEvent.emit(UiEvent.ShowSnackbar("Logout efetuado com sucesso."))
+        }
+    }
+
+    fun syncWithFirestore(context: Context) {
+        val list = allOccurrences.value
+        if (list.isEmpty()) {
+            viewModelScope.launch {
+                _uiEvent.emit(UiEvent.ShowSnackbar("Nenhuma ocorrência local para sincronizar."))
+            }
+            return
+        }
+
+        isFirestoreSyncing.value = true
+        viewModelScope.launch {
+            val result = firestoreSyncService.syncAllToFirestore(list)
+            isFirestoreSyncing.value = false
+            result.onSuccess { count ->
+                val timeStr = "${getCurrentTime()} (${getCurrentDate()})"
+                lastFirestoreSyncTime.value = timeStr
+                _uiEvent.emit(UiEvent.ShowSnackbar("✓ $count ocorrência(s) sincronizada(s) na nuvem Firebase com sucesso!"))
+            }.onFailure { err ->
+                _uiEvent.emit(UiEvent.ShowSnackbar("Erro ao sincronizar com Firestore: ${err.message}"))
+            }
+        }
+    }
+
+    fun fetchFromFirestore(context: Context) {
+        isFirestoreSyncing.value = true
+        viewModelScope.launch {
+            val result = firestoreSyncService.fetchOccurrencesFromFirestore()
+            isFirestoreSyncing.value = false
+            result.onSuccess { cloudList ->
+                if (cloudList.isEmpty()) {
+                    _uiEvent.emit(UiEvent.ShowSnackbar("Nenhuma ocorrência encontrada na nuvem Firestore."))
+                } else {
+                    for (occ in cloudList) {
+                        repository.saveOccurrence(occ)
+                    }
+                    val timeStr = "${getCurrentTime()} (${getCurrentDate()})"
+                    lastFirestoreSyncTime.value = timeStr
+                    _uiEvent.emit(UiEvent.ShowSnackbar("✓ ${cloudList.size} ocorrência(s) baixada(s) do Firebase e integradas ao banco local!"))
+                }
+            }.onFailure { err ->
+                _uiEvent.emit(UiEvent.ShowSnackbar("Erro ao buscar dados do Firestore: ${err.message}"))
+            }
+        }
+    }
 
     private val _formState = MutableStateFlow(SafetyFormState())
     val formState: StateFlow<SafetyFormState> = _formState.asStateFlow()
@@ -1518,12 +1702,13 @@ class SafetyViewModel(
 }
 
 class SafetyViewModelFactory(
-    private val repository: SafetyRepository
+    private val repository: SafetyRepository,
+    private val context: Context? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SafetyViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SafetyViewModel(repository) as T
+            return SafetyViewModel(repository, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

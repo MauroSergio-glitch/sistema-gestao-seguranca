@@ -107,6 +107,8 @@ fun SafetyManagementDashboardScreen(
         .toList()
         .sortedByDescending { it.second }
 
+    var dashboardViewMode by remember { mutableStateOf(1) } // 1 = Power BI Interativo (padrão), 0 = Resumo Geral
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,7 +116,7 @@ fun SafetyManagementDashboardScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Executive Header Card
+        // Executive Header Card with Power BI Mode Switcher
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -123,8 +125,8 @@ fun SafetyManagementDashboardScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -157,7 +159,7 @@ fun SafetyManagementDashboardScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Indicadores de Desempenho & Gestão de Riscos",
+                                text = "Indicadores em Tempo Real • Estilo Power BI",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -175,8 +177,97 @@ fun SafetyManagementDashboardScreen(
                         }
                     }
                 }
+
+                // View Mode Switcher
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (dashboardViewMode == 1) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { dashboardViewMode = 1 }
+                                .testTag("btn_view_powerbi")
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.BarChart,
+                                        contentDescription = null,
+                                        tint = if (dashboardViewMode == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "📈 Painel Power BI",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (dashboardViewMode == 1) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (dashboardViewMode == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (dashboardViewMode == 0) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { dashboardViewMode = 0 }
+                                .testTag("btn_view_classic")
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Assessment,
+                                        contentDescription = null,
+                                        tint = if (dashboardViewMode == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "📋 Resumo Geral",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (dashboardViewMode == 0) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (dashboardViewMode == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+
+        if (dashboardViewMode == 1) {
+            // Interactive Power BI Panel View
+            PowerBiDashboardView(
+                viewModel = viewModel,
+                occurrences = occurrences,
+                onNavigateToAlerts = onNavigateToAlerts,
+                onNavigateToWorkflow = onNavigateToWorkflow,
+                onNavigateToForm = onNavigateToForm
+            )
+        } else {
+            // Classic Summary View
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
         // ==========================================
         // SECTION 1: KEY PERFORMANCE INDICATORS (KPIs)
@@ -535,7 +626,7 @@ fun SafetyManagementDashboardScreen(
         }
 
         // ==========================================
-        // SECTION 5: EXECUTIVE ACTION SHORTCUTS
+        // SECTION 5: EXECUTIVE ACTION & EXPORT SHORTCUTS
         // ==========================================
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -547,10 +638,15 @@ fun SafetyManagementDashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Ações Rápidas do Gestor SST",
+                    text = "Exportação de Ocorrências & Análise Externa",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Exporte o histórico consolidado de $totalOccurrences ocorrência(s) em formato CSV / Excel estruturado para abrir no Microsoft Excel ou Google Planilhas, ou gere o Relatório Executivo em PDF para impressão e envio.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Row(
@@ -558,22 +654,22 @@ fun SafetyManagementDashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
+                        onClick = { viewModel.exportarPlanilhaCsv(context) },
+                        modifier = Modifier.weight(1f).testTag("btn_export_master_csv"),
+                        colors = ButtonDefaults.buttonColors(containerColor = SafetyGreenPrimary)
+                    ) {
+                        Icon(imageVector = Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Exportar CSV / Excel", fontSize = 12.sp)
+                    }
+
+                    OutlinedButton(
                         onClick = { viewModel.gerarRelatorioPdfExecutivo(context) },
-                        modifier = Modifier.weight(1f).testTag("btn_export_executive_pdf"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        modifier = Modifier.weight(1f).testTag("btn_export_executive_pdf")
                     ) {
                         Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("PDF Executivo", fontSize = 12.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = { viewModel.exportarPlanilhaCsv(context) },
-                        modifier = Modifier.weight(1f).testTag("btn_export_master_csv")
-                    ) {
-                        Icon(imageVector = Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Planilha CSV", fontSize = 12.sp)
                     }
                 }
 
@@ -601,6 +697,8 @@ fun SafetyManagementDashboardScreen(
                 }
             }
         }
+        } // closes Column
+    } // closes else
 
         Spacer(modifier = Modifier.height(24.dp))
     }

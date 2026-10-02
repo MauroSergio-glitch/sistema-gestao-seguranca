@@ -49,6 +49,11 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Close
 import com.example.ui.components.BackupAndClearDialog
 import com.example.ui.components.PostBackupClearConfirmationDialog
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
@@ -195,6 +200,9 @@ fun MainFormScreen(
                         val updated = if (current.isBlank()) text else "$current. $text"
                         viewModel.onAcaoTomadaChanged(updated)
                     }
+                    "chat" -> {
+                        viewModel.sendChatMessage(text)
+                    }
                     else -> {
                         val current = formState.relatoDetalhes.trim()
                         val updated = if (current.isBlank()) text else "$current. $text"
@@ -214,6 +222,7 @@ fun MainFormScreen(
             "perigo" -> "Dite a identificação do perigo..."
             "acaoPreventiva" -> "Dite a ação preventiva definitiva..."
             "acao" -> "Fale a ação tomada de contenção..."
+            "chat" -> "Dite sua dúvida ou relato para o Assistente SST..."
             else -> "Dite os detalhes da ocorrência..."
         }
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -364,12 +373,43 @@ fun MainFormScreen(
                 },
                 actions = {
                     IconButton(
+                        onClick = { viewModel.gerarRelatorioPdfExecutivo(context) },
+                        modifier = Modifier.testTag("btn_export_pdf_top")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = "Exportar Relatório PDF",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { viewModel.exportarPlanilhaCsv(context) },
+                        modifier = Modifier.testTag("btn_export_excel_top")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.TableChart,
+                            contentDescription = "Exportar Planilha CSV/Excel",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
                         onClick = { viewModel.requestBackupAndClear() },
                         modifier = Modifier.testTag("btn_backup_clear")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CleaningServices,
-                            contentDescription = "Backup e Limpeza de Registros"
+                            imageVector = Icons.Default.Storage,
+                            contentDescription = "Backup Geral do Sistema",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { viewModel.showHistorySheet.value = true },
+                        modifier = Modifier.testTag("btn_history")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Ver Histórico",
+                            tint = Color.White
                         )
                     }
                     Box {
@@ -382,12 +422,26 @@ fun MainFormScreen(
                                 contentDescription = "Menu de Configurações"
                             )
                         }
-
                         DropdownMenu(
                             expanded = showSettingsMenu,
                             onDismissRequest = { showSettingsMenu = false },
                             modifier = Modifier.testTag("dropdown_settings_menu")
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Backup Geral e Otimização") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Storage,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    viewModel.requestBackupAndClear()
+                                },
+                                modifier = Modifier.testTag("menu_item_backup_clear")
+                            )
                             DropdownMenuItem(
                                 text = { Text("Configurar E-mail do Setor") },
                                 leadingIcon = {
@@ -402,21 +456,6 @@ fun MainFormScreen(
                                     viewModel.showEmailSettingsDialog.value = true
                                 },
                                 modifier = Modifier.testTag("menu_item_email_settings")
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Backup e Otimização") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.CleaningServices,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                onClick = {
-                                    showSettingsMenu = false
-                                    viewModel.requestBackupAndClear()
-                                },
-                                modifier = Modifier.testTag("menu_item_backup_clear")
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
@@ -440,15 +479,6 @@ fun MainFormScreen(
                                 modifier = Modifier.testTag("menu_item_about")
                             )
                         }
-                    }
-                    IconButton(
-                        onClick = { viewModel.showHistorySheet.value = true },
-                        modifier = Modifier.testTag("btn_history")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Ver Histórico"
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -547,6 +577,30 @@ fun MainFormScreen(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary
                     )
+                )
+            }
+        },
+        floatingActionButton = {
+            if (selectedTab != 0) {
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.selectTab(0) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Novo Relato",
+                            tint = Color.White
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Novo Relato",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    modifier = Modifier.testTag("fab_new_report")
                 )
             }
         },

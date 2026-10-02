@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
 
         val database = AppDatabase.getDatabase(this, applicationScope)
         val repository = SafetyRepository(database.occurrenceDao(), database.employeeDao())
-        val factory = SafetyViewModelFactory(repository)
+        val factory = SafetyViewModelFactory(repository, applicationContext)
         val viewModel: SafetyViewModel by viewModels { factory }
 
         setContent {

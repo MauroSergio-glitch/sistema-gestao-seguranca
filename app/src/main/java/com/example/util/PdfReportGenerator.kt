@@ -670,10 +670,11 @@ object PdfReportGenerator {
             loadPhotoBitmap(context, Uri.parse(item.fotoUri))
         } else null
 
-        val photoHeight = if (photoBitmap != null) 92f else 0f
-        val cardEstimatedHeight = 138f + relatoLayout.height + acaoLayout.height + photoHeight
+        // Altura padronizada fixa para o bloco de foto (com ou sem registro fotográfico)
+        val photoBlockHeight = 84f
+        val cardEstimatedHeight = 142f + relatoLayout.height + photoBlockHeight + acaoLayout.height
 
-        // Guarantees continuous block integrity without awkward breaks across page boundaries
+        // Garante integridade do bloco completo sem cortes inadequados entre páginas
         checkSpace(cardEstimatedHeight)
 
         // Outer Card Box
@@ -786,7 +787,88 @@ object PdfReportGenerator {
         canvas.restore()
         y += relatoBoxHeight + 6f
 
-        // 4. ACTION / MEDIDA ADOTADA BOX
+        // 4. EVIDÊNCIA FOTOGRÁFICA (INSERIDA LOGO APÓS A DESCRIÇÃO)
+        val photoBoxRect = RectF(MARGIN_LEFT + 10f, y, MARGIN_LEFT + 10f + boxWidth, y + 84f)
+        boxBgPaint.color = COLOR_LIGHT_BG
+        boxBorderPaint.color = COLOR_BORDER
+        canvas.drawRoundRect(photoBoxRect, 3f, 3f, boxBgPaint)
+        canvas.drawRoundRect(photoBoxRect, 3f, 3f, boxBorderPaint)
+
+        subHeaderPaint.color = COLOR_NAVY_DARK
+        canvas.drawText("EVIDÊNCIA FOTOGRÁFICA / REGISTRO VISUAL DO LOCAL:", MARGIN_LEFT + 14f, y + 10f, subHeaderPaint)
+
+        val standardPhotoW = 100f
+        val standardPhotoH = 64f
+        val photoX = MARGIN_LEFT + 14f
+        val photoY = y + 14f
+
+        if (photoBitmap != null) {
+            // Calcula aspect ratio para manter a proporção original sem distorcer
+            val bmpW = photoBitmap.width.toFloat()
+            val bmpH = photoBitmap.height.toFloat()
+            val bmpRatio = bmpW / bmpH
+            val targetRatio = standardPhotoW / standardPhotoH
+
+            val (drawW, drawH) = if (bmpRatio > targetRatio) {
+                standardPhotoW to (standardPhotoW / bmpRatio)
+            } else {
+                (standardPhotoH * bmpRatio) to standardPhotoH
+            }
+
+            val imgX = photoX + ((standardPhotoW - drawW) / 2f)
+            val imgY = photoY + ((standardPhotoH - drawH) / 2f)
+            val imgRect = RectF(imgX, imgY, imgX + drawW, imgY + drawH)
+
+            // Desenha a imagem mantendo a proporção
+            canvas.drawBitmap(photoBitmap, null, imgRect, Paint(Paint.FILTER_BITMAP_FLAG))
+
+            // Borda fina elegante de 1px ao redor da foto
+            val photoBorderPaint = Paint().apply {
+                color = COLOR_BORDER
+                style = Paint.Style.STROKE
+                strokeWidth = 1f
+                isAntiAlias = true
+            }
+            canvas.drawRoundRect(imgRect, 2f, 2f, photoBorderPaint)
+
+            val photoCaptionPaint = Paint().apply {
+                color = COLOR_TEXT_MUTED
+                textSize = 6.8f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.ITALIC)
+                isAntiAlias = true
+            }
+            canvas.drawText("Registro de campo capturado no ato da inspeção SST.", MARGIN_LEFT + 124f, y + 36f, photoCaptionPaint)
+            canvas.drawText("Evidência associada à Ocorrência #${String.format(Locale.getDefault(), "%02d", itemNum)}", MARGIN_LEFT + 124f, y + 48f, photoCaptionPaint)
+        } else {
+            // CASO SEM FOTO: Exibe quadro padronizado com fundo cinza bem claro e mensagem centralizada
+            val emptyBoxRect = RectF(photoX, photoY, photoX + standardPhotoW, photoY + standardPhotoH)
+            val emptyBoxBg = Paint().apply { color = COLOR_ROW_ALT; style = Paint.Style.FILL }
+            val emptyBoxBorder = Paint().apply { color = COLOR_BORDER; style = Paint.Style.STROKE; strokeWidth = 1f }
+            canvas.drawRoundRect(emptyBoxRect, 2f, 2f, emptyBoxBg)
+            canvas.drawRoundRect(emptyBoxRect, 2f, 2f, emptyBoxBorder)
+
+            val noPhotoPaint = Paint().apply {
+                color = COLOR_TEXT_MUTED
+                textSize = 7f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.ITALIC)
+                textAlign = Paint.Align.CENTER
+                isAntiAlias = true
+            }
+            canvas.drawText("Sem registro fotográfico", emptyBoxRect.centerX(), emptyBoxRect.centerY() + 2.5f, noPhotoPaint)
+
+            val photoCaptionPaint = Paint().apply {
+                color = COLOR_TEXT_MUTED
+                textSize = 6.8f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.ITALIC)
+                isAntiAlias = true
+            }
+            canvas.drawText("Nenhum arquivo fotográfico foi anexado no momento do relato.", MARGIN_LEFT + 124f, y + 36f, photoCaptionPaint)
+            canvas.drawText("Registro em conformidade com as diretrizes de controle da NR-01 / NR-12.", MARGIN_LEFT + 124f, y + 48f, photoCaptionPaint)
+        }
+
+        y += 88f
+
+        // 5. ACTION / MEDIDA ADOTADA BOX (APÓS A FOTO)
         val acaoBoxHeight = acaoLayout.height + 18f
         val acaoBoxRect = RectF(MARGIN_LEFT + 10f, y, MARGIN_LEFT + 10f + boxWidth, y + acaoBoxHeight)
         boxBgPaint.color = COLOR_BOX_ACTION_BG
@@ -806,34 +888,6 @@ object PdfReportGenerator {
         acaoLayout.draw(canvas)
         canvas.restore()
         y += acaoBoxHeight + 6f
-
-        // 5. PHOTO IF ATTACHED
-        if (photoBitmap != null) {
-            val photoBoxRect = RectF(MARGIN_LEFT + 10f, y, MARGIN_LEFT + 10f + boxWidth, y + 84f)
-            boxBgPaint.color = COLOR_LIGHT_BG
-            boxBorderPaint.color = COLOR_BORDER
-            canvas.drawRoundRect(photoBoxRect, 3f, 3f, boxBgPaint)
-            canvas.drawRoundRect(photoBoxRect, 3f, 3f, boxBorderPaint)
-
-            subHeaderPaint.color = COLOR_TEXT_MUTED
-            canvas.drawText("EVIDÊNCIA FOTOGRÁFICA / REGISTRO VISUAL ANEXADO:", MARGIN_LEFT + 14f, y + 10f, subHeaderPaint)
-
-            val photoW = 110f
-            val photoH = 64f
-            val photoRect = RectF(MARGIN_LEFT + 14f, y + 14f, MARGIN_LEFT + 14f + photoW, y + 14f + photoH)
-            canvas.drawBitmap(photoBitmap, null, photoRect, Paint(Paint.FILTER_BITMAP_FLAG))
-
-            val photoCaptionPaint = Paint().apply {
-                color = COLOR_TEXT_MUTED
-                textSize = 6.8f
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.ITALIC)
-                isAntiAlias = true
-            }
-            canvas.drawText("Registro de campo capturado no ato da inspeção SST.", MARGIN_LEFT + 134f, y + 36f, photoCaptionPaint)
-            canvas.drawText("Evidência associada à Ocorrência #${String.format(Locale.getDefault(), "%02d", itemNum)}", MARGIN_LEFT + 134f, y + 48f, photoCaptionPaint)
-
-            y += 88f
-        }
 
         return y + 6f
     }

@@ -1,6 +1,6 @@
 {
-  "name": "Remix Ocorrências de Segurança SST",
-  "description": "Aplicativo para registro e envio de ocorrências e relatos de segurança do trabalho.",
+  "name": "Foco na Prevenção",
+  "description": "Sistema de gestão SST com painel gerencial estilo Power BI em tempo real, suporte a Android, iOS e Web PWA, relatórios em Excel e PDF.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

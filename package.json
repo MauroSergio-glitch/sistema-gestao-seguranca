@@ -1,0 +1,8 @@
+{
+  "name": "foco-na-prevencao",
+  "version": "2.0.0",
+  "description": "Sistema de Gestão SST Multiplataforma (Android, iOS e Web)",
+  "scripts": {
+    "start": "node pwa/server.js"
+  }
+}
