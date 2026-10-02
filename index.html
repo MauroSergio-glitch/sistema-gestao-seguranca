@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3.0">
 
   <!-- SheetJS para Exportação Profissional em Excel (.xlsx) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -380,7 +380,18 @@
     </button>
   </nav>
 
-  <!-- Script Principal -->
-  <script src="app.js"></script>
+  <!-- Auto-update Service Worker para atualizar iPhone e Web -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.update();
+        }
+      });
+    }
+  </script>
+
+  <!-- Script Principal com Cache Buster -->
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
