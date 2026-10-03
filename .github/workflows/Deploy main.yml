@@ -9,7 +9,7 @@ permissions:
   contents: write # Permissão necessária para fazer push na branch gh-pages
 defaults:
   ron:
-    working-directory: app.
+    working-directory: app
   
 jobs:
   build-and-deploy:
